@@ -1,0 +1,8 @@
+language: node_js
+node_js:
+  - node
+dist: trusty
+install:
+  - npm install --build-from-source
+script:
+  - npm run test
