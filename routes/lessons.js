@@ -9,6 +9,7 @@ const schema = require("../joi-schemas/lesson");
 const createResponse = require("./helpers/create-response");
 const controller = require("../controllers/lessons");
 const credentials = require("../credentials");
+const setupDates = require("../util/setup-dates");
 
 const router = express.Router();
 
@@ -75,7 +76,7 @@ router.post("/authorize", function (req, res, next) {
 
 router.post("/", async function (req, res, next) {
   try {
-    await schema.validateAsync(req.body);
+    await schema.newSchema.validateAsync(req.body);
   } catch (error) {
     return res.status(400).json(
       createResponse({
@@ -84,25 +85,49 @@ router.post("/", async function (req, res, next) {
     );
   }
 
-  const { title, start, end } = req.body;
-  const event = {
-    summary: title,
-    start: {
-      dateTime: start,
-    },
-    end: {
-      dateTime: end,
-    },
-    recurrence: ["RRULE:FREQ=WEEKLY"],
-  };
+  try {
+    const newLesson = await controller.add(req.body);
+    const {
+      _id,
+      subject: { name },
+      slot,
+      day,
+      class: location,
+    } = newLesson;
 
-  addEvent(event, function (err, ev) {
-    if (err) {
-      return next(err);
+    const { eventDayStart, eventDayEnd } = setupDates(day, slot);
+
+    const event = {
+      id: _id,
+      summary: name,
+      location,
+      start: {
+        dateTime: eventDayStart,
+      },
+      end: {
+        dateTime: eventDayEnd,
+      },
+      recurrence: ["RRULE:FREQ=WEEKLY"],
+    };
+
+    addEvent(event, function (err, ev) {
+      if (err) {
+        return next(err);
+      }
+
+      res.status(204).json(createResponse({ data: ev }));
+    });
+  } catch (error) {
+    if (error.message === "Slot taken.") {
+      return res.json(
+        createResponse({
+          error: error.message,
+        })
+      );
     }
 
-    res.json(createResponse({ data: ev }));
-  });
+    return next(error);
+  }
 });
 
 module.exports = router;

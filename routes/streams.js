@@ -4,6 +4,7 @@ var router = express.Router();
 const schema = require("../joi-schemas/stream");
 const createResponse = require("./helpers/create-response");
 const controller = require("../controllers/streams");
+const auth = require("../middleware/auth");
 
 router.get("/", async function (req, res, next) {
   try {
@@ -17,24 +18,31 @@ router.get("/", async function (req, res, next) {
   }
 });
 
-router.post("/", async function (req, res, next) {
+router.post("/", auth, async function (req, res, next) {
   try {
-    await schema.validateAsync(req.body);
+    await schema.newSchema.validateAsync(req.body);
   } catch (error) {
     return res.status(400).json(
       createResponse({
-        error: "Invalid data. Check that you provided all fields.",
+        error: error.message,
       })
     );
   }
 
   try {
-    res.json(
+    res.status(201).json(
       createResponse({
         data: await controller.add(req.body),
       })
     );
   } catch (error) {
+    if (error.message === "Possible duplicate.") {
+      return res.json(
+        createResponse({
+          error: "There is a stream existing with similar details.",
+        })
+      );
+    }
     next(error);
   }
 });

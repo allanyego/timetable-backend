@@ -34,12 +34,13 @@ router.post("/signin", async function (req, res, next) {
   }
 
   if (await bcrypt.compare(password, user.password)) {
-    const { password, ...rest } = user;
+    user = user.toJSON();
+    delete user.password;
     // Append a token to the user
-    rest.token = sign(user);
+    user.token = sign(user);
     res.json(
       createResponse({
-        data: rest,
+        data: user,
       })
     );
   } else {
@@ -53,27 +54,37 @@ router.post("/signin", async function (req, res, next) {
 
 router.post("/", async function (req, res, next) {
   try {
-    await schema.validateAsync(req.body);
+    await schema.newSchema.validateAsync(req.body);
   } catch (error) {
     return res.status(400).json(
       createResponse({
-        error: "Invalid data. Check that you provided all fields.",
+        error: error.message,
       })
     );
   }
 
-  const hashedPassword = await bcrypt.hash(passwordGen, 3);
+  const hashedPassword = await bcrypt.hash(passwordGen(), 3);
 
   try {
-    res.json(
+    const newTeacher = await controller.add({
+      ...req.body,
+      password: hashedPassword,
+    });
+
+    res.status(201).json(
       createResponse({
-        data: await controller.add({
-          ...req.body,
-          password: hashedPassword,
-        }),
+        data: newTeacher,
       })
     );
   } catch (error) {
+    if (error.message === "Possible duplicate.") {
+      return res.json(
+        createResponse({
+          error: "There is a stream existing with similar details.",
+        })
+      );
+    }
+
     next(error);
   }
 });

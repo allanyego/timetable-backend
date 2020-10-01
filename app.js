@@ -9,6 +9,7 @@ const cors = require("cors");
 require("./db");
 
 var apiRouter = require("./routes/index");
+const createResponse = require("./routes/helpers/create-response");
 
 var app = express();
 
@@ -20,5 +21,17 @@ app.use(cookieParser());
 app.use(express.static(path.join(__dirname, "public")));
 
 app.use("/api/v1", apiRouter);
+
+app.use(function errorHandler(err, req, res, next) {
+  if (res.headersSent) {
+    return next(err);
+  }
+  res.status(500);
+  res.json(
+    createResponse({
+      error: err,
+    })
+  );
+});
 
 module.exports = app;

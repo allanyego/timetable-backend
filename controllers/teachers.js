@@ -1,6 +1,15 @@
 const Teacher = require("../models/teacher");
 
 async function add(data) {
+  if (
+    await Teacher.findOne().or([
+      { username: data.username },
+      { email: data.email },
+    ])
+  ) {
+    throw new Error("Possible duplicate.");
+  }
+
   return await Teacher.create(data);
 }
 
