@@ -16,7 +16,7 @@ router.use("/streams", streamsRouter);
 
 const burgers = ["turkey", "salmon", "beef", "veggies"];
 
-router.get("/buggers", (req, res) => {
+router.get("/burgers", (req, res) => {
   setTimeout(() => {
     res.json({
       status: "Success",
