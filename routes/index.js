@@ -14,4 +14,15 @@ router.use("/classes", classesRouter);
 router.use("/lessons", lessonsRouter);
 router.use("/streams", streamsRouter);
 
+const burgers = ["turkey", "salmon", "beef", "veggies"];
+
+router.get("/buggers", (req, res) => {
+  setTimeout(() => {
+    res.json({
+      status: "Success",
+      data: burgers,
+    });
+  }, 7000);
+});
+
 module.exports = router;
